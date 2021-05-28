@@ -38,7 +38,7 @@ func (s *HTTPSource) WithParser(parser ContentParser) *HTTPSource {
 }
 
 // IP implements Source.IP
-func (s *HTTPSource) IP(timeout time.Duration, logger *log.Logger) (net.IP, error) {
+func (s *HTTPSource) IP(timeout time.Duration, logger *log.Logger, privateIP net.IP) (net.IP, error) {
 	// Define the GET method with the correct url,
 	// setting the User-Agent to our library
 	req, err := http.NewRequest("GET", s.url, nil)
@@ -49,6 +49,12 @@ func (s *HTTPSource) IP(timeout time.Duration, logger *log.Logger) (net.IP, erro
 	req.Header.Set("User-Agent", "go-external-ip (github.com/glendc/go-external-ip)")
 
 	client := &http.Client{Timeout: timeout}
+	if privateIP != nil {
+		client.Transport = &http.Transport{
+			DialContext: (&net.Dialer{LocalAddr: &net.TCPAddr{IP: privateIP}}).DialContext,
+		}
+	}
+
 	// Do the request and read the body for non-error results.
 	resp, err := client.Do(req)
 	if err != nil {

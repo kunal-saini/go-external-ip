@@ -24,16 +24,16 @@ func DefaultConsensus(cfg *ConsensusConfig, logger *log.Logger) *Consensus {
 	consensus := NewConsensus(cfg, logger)
 
 	// TLS-protected providers
-	consensus.AddVoter(NewHTTPSource("https://icanhazip.com/"), 3)
-	consensus.AddVoter(NewHTTPSource("https://myexternalip.com/raw"), 3)
+	_ = consensus.AddVoter(NewHTTPSource("https://icanhazip.com/"), 3)
+	_ = consensus.AddVoter(NewHTTPSource("https://myexternalip.com/raw"), 3)
 
 	// Plain-text providers
-	consensus.AddVoter(NewHTTPSource("http://ifconfig.io/ip"), 1)
-	consensus.AddVoter(NewHTTPSource("http://checkip.amazonaws.com/"), 1)
-	consensus.AddVoter(NewHTTPSource("http://ident.me/"), 1)
-	consensus.AddVoter(NewHTTPSource("http://whatismyip.akamai.com/"), 1)
-	consensus.AddVoter(NewHTTPSource("http://myip.dnsomatic.com/"), 1)
-	consensus.AddVoter(NewHTTPSource("http://diagnostic.opendns.com/myip"), 1)
+	_ = consensus.AddVoter(NewHTTPSource("http://ifconfig.io/ip"), 1)
+	_ = consensus.AddVoter(NewHTTPSource("http://checkip.amazonaws.com/"), 1)
+	_ = consensus.AddVoter(NewHTTPSource("http://ident.me/"), 1)
+	_ = consensus.AddVoter(NewHTTPSource("http://whatismyip.akamai.com/"), 1)
+	_ = consensus.AddVoter(NewHTTPSource("http://myip.dnsomatic.com/"), 1)
+	_ = consensus.AddVoter(NewHTTPSource("http://diagnostic.opendns.com/myip"), 1)
 
 	return consensus
 }
@@ -48,14 +48,16 @@ func NewConsensus(cfg *ConsensusConfig, logger *log.Logger) *Consensus {
 		logger = NewLogger(nil)
 	}
 	return &Consensus{
-		timeout: cfg.Timeout,
-		logger:  logger,
+		timeout:   cfg.Timeout,
+		logger:    logger,
+		privateIP: cfg.PrivateIP,
 	}
 }
 
 // ConsensusConfig is used to configure the Consensus, while creating it.
 type ConsensusConfig struct {
-	Timeout time.Duration
+	Timeout   time.Duration
+	PrivateIP net.IP
 }
 
 // WithTimeout sets the voting timeout of this config,
@@ -70,9 +72,10 @@ func (cfg *ConsensusConfig) WithTimeout(timeout time.Duration) *ConsensusConfig 
 // Its `ExternalIP` method allows you to ask for your ExternalIP,
 // influenced by all its added voters.
 type Consensus struct {
-	voters  []voter
-	timeout time.Duration
-	logger  *log.Logger
+	voters    []voter
+	timeout   time.Duration
+	logger    *log.Logger
+	privateIP net.IP
 }
 
 // AddVoter adds a voter to this consensus.
@@ -108,7 +111,7 @@ func (c *Consensus) ExternalIP() (net.IP, error) {
 		wg.Add(1)
 		go func(v voter) {
 			defer wg.Done()
-			ip, err := v.source.IP(c.timeout, c.logger)
+			ip, err := v.source.IP(c.timeout, c.logger, c.privateIP)
 			if err == nil && ip != nil {
 				vlock.Lock()
 				defer vlock.Unlock()
