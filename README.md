@@ -22,13 +22,35 @@ package main
 
 import (
     "fmt"
-    "github.com/glendc/go-external-ip"
+    "github.com/kunal-saini/go-external-ip"
 )
 
 func main() {
     // Create the default consensus,
     // using the default configuration and no logger.
     consensus := externalip.DefaultConsensus(nil, nil)
+    // Get your IP,
+    // which is never <nil> when err is <nil>.
+    ip, err := consensus.ExternalIP()
+    if err == nil {
+        fmt.Println(ip.String()) // print IPv4/IPv6 in string format
+    }
+}
+```
+
+## Advanced Usage: Dial through Local Addr
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/kunal-saini/go-external-ip"
+)
+
+func main() {
+    // Create the consensus, using the custom configuration.
+    consensusConfig := &externalip.ConsensusConfig{Timeout: 5 * time.Second, PrivateIP: v.IP}
+    consensus := externalip.DefaultConsensus(consensusConfig, nil)
     // Get your IP,
     // which is never <nil> when err is <nil>.
     ip, err := consensus.ExternalIP()
